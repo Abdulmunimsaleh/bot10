@@ -40,7 +40,11 @@ def send_to_tidio(user_message):
     headers = {"Content-Type": "application/json"}
     
     try:
-        requests.post(tidio_chat_url, json=payload, headers=headers)
+        response = requests.post(tidio_chat_url, json=payload, headers=headers)
+        if response.status_code == 200:
+            print("Message successfully sent to Tidio live agent.")
+        else:
+            print(f"Failed to send message to Tidio: {response.status_code}, {response.text}")
     except Exception as e:
         print(f"Error sending message to Tidio: {e}")
 
@@ -59,11 +63,12 @@ def ask_question(question: str):
     response = model.generate_content(prompt)
     answer = response.text.strip()
     
-    transfer_keywords = ["human agent", "real person", "talk to a human", "customer service", "support"]
-    cannot_answer_phrases = ["I can't do that", "I am unable", "I cannot", "I don't know", "I do not know", "I can only provide information"]
+    transfer_keywords = ["human agent", "real person", "talk to a human", "customer service", "support", "connect me to a human"]
+    cannot_answer_phrases = ["I can't do that", "I am unable", "I cannot", "I don't know", "I do not know", "I can only provide information", "This website does not provide contact information"]
     
     if any(kw in question.lower() for kw in transfer_keywords) or any(phrase in answer.lower() for phrase in cannot_answer_phrases):
         send_to_tidio(question)  # Silently send message to Tidio
+        return ""  # Do not return any response to the user
     
     return answer
 
