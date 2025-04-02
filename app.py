@@ -33,28 +33,18 @@ def load_data():
     except FileNotFoundError:
         return scrape_website()
 
-# Function to send a message to Tidio Live Chat
+# Function to send message to Tidio's live agent inbox
 def send_to_tidio(user_message):
     tidio_chat_url = "https://www.tidio.com/panel/inbox/conversations/unassigned/"
+    payload = {"message": user_message, "source": "chatbot", "timestamp": "now"}
+    headers = {"Content-Type": "application/json"}
     
-    payload = {
-        "message": user_message,
-        "source": "chatbot",
-        "timestamp": "now"  # You can update this dynamically
-    }
-    
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
-    response = requests.post(tidio_chat_url, json=payload, headers=headers)
-    
-    if response.status_code == 200:
-        return "Message sent to live agent."
-    else:
-        return "Failed to transfer to a live agent."
+    try:
+        requests.post(tidio_chat_url, json=payload, headers=headers)
+    except Exception as e:
+        print(f"Error sending message to Tidio: {e}")
 
-# Function to determine if a transfer is needed
+# Function to process user questions
 def ask_question(question: str):
     data = load_data()
     
@@ -69,14 +59,12 @@ def ask_question(question: str):
     response = model.generate_content(prompt)
     answer = response.text.strip()
     
-    # Define criteria for transferring to a human agent
-    transfer_keywords = ["human agent", "real person", "talk to a human", "customer service"]
-    cannot_answer_phrases = ["I can't do that", "I am unable", "I cannot", "I don't know", "I do not know"]
+    transfer_keywords = ["human agent", "real person", "talk to a human", "customer service", "support"]
+    cannot_answer_phrases = ["I can't do that", "I am unable", "I cannot", "I don't know", "I do not know", "I can only provide information"]
     
     if any(kw in question.lower() for kw in transfer_keywords) or any(phrase in answer.lower() for phrase in cannot_answer_phrases):
-        send_to_tidio(question)  # Send the message to Tidio
-        return "I have transferred you to a human agent. They will assist you shortly."
-
+        send_to_tidio(question)  # Silently send message to Tidio
+    
     return answer
 
 @app.get("/ask")
